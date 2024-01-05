@@ -109,3 +109,35 @@ def get_specific_month_event():
             return JSONResponse(content=result_list)
     finally:
         connection.close()
+
+
+
+
+@chart_app.get("/yearly_distribution")
+def get_yearly_distribution():
+    connection = connect_to_database()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    YEAR(date_filed) AS year,
+                    CASE 
+                        WHEN category = 'Male' THEN 'Male'
+                        WHEN category = 'Female' THEN 'Female'
+                        ELSE 'Others'
+                    END AS grouped_category,
+                    SUM(count) AS total_count_per_category
+                FROM 
+                    attendance
+                GROUP BY 
+                    year, grouped_category
+                ORDER BY 
+                    year, grouped_category;
+            """)
+            rows = cursor.fetchall()
+
+            result_list = [{"year": row[0], "category": row[1], "total_count": float(row[2])} for row in rows]
+
+            return JSONResponse(content=result_list)
+    finally:
+        connection.close()
